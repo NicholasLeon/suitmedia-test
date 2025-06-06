@@ -9,7 +9,7 @@ const navbarItems = [
   { label: "About", href: "/about" },
   { label: "Services", href: "/services" },
   { label: "Ideas", href: "/ideas" },
-  { label: "Careers", href: "/careers" },
+  { label: "Careers", href: "/" },
   { label: "Contact", href: "/contact" },
 ];
 
@@ -87,7 +87,7 @@ export default function Navbar() {
         <button
           aria-label="Toggle Menu"
           onClick={() => setOpen((prev) => !prev)}
-          className="md:hidden text-gray-800"
+          className="md:hidden text-white"
         >
           {open ? (
             <svg
@@ -137,7 +137,9 @@ export default function Navbar() {
                   className={`
                     py-2 border-b text-sm
                     ${
-                      isActive ? "text-orange-600 font-medium" : "text-gray-700"
+                      isActive
+                        ? "text-white font-normal underline"
+                        : "text-white"
                     }
                   `}
                 >
