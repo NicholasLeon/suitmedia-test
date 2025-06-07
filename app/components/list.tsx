@@ -5,8 +5,8 @@ import { fetchIdeas, Idea } from "@/lib/ideas";
 import Image from "next/image";
 import Link from "next/link";
 
-const perPageOptions = [10, 20, 50];
-const sortOptions = [
+const PAGE_SIZE_OPTIONS = [10, 20, 50];
+const SORT_MODES = [
   { label: "Newest", value: "-published_at" },
   { label: "Oldest", value: "published_at" },
 ];
@@ -14,148 +14,137 @@ const sortOptions = [
 export default function IdeasList() {
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [currentSort, setCurrentSort] = useState("-published_at");
-  const [totalRecords, setTotalRecords] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const [sortBy, setSortBy] = useState("-published_at");
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [totalItems, setTotalItems] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const rangeStart = (currentPage - 1) * pageSize + 1;
+  const rangeEnd = Math.min(currentPage * pageSize, totalItems);
 
   useEffect(() => {
-    const retrieveIdeas = async () => {
-      setIsLoading(true);
-      setFetchError(null);
+    const loadIdeas = async () => {
+      setLoading(true);
+      setErrorMsg(null);
+
       try {
-        const { data: ideaData, meta: paginationMeta } = await fetchIdeas({
+        const { data, meta } = await fetchIdeas({
           page: currentPage,
-          size: itemsPerPage,
-          sort: currentSort,
+          size: pageSize,
+          sort: sortBy,
         });
 
-        if (paginationMeta) {
-          setTotalRecords(paginationMeta.total);
-        } else {
-          console.warn("Meta data for pagination is missing.");
-          setTotalRecords(ideaData.length);
-        }
-        setIdeas(ideaData);
+        setIdeas(data);
+        setTotalItems(meta?.total || data.length);
       } catch (err: any) {
-        console.error("Gagal mengambil ide:", err);
-        setFetchError("Mohon maaf, kami gagal memuat ide. Coba lagi nanti.");
+        setErrorMsg("Gagal memuat data ide. Silakan coba beberapa saat lagi.");
+        console.error("Fetch error:", err);
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
 
-    retrieveIdeas();
-  }, [currentPage, itemsPerPage, currentSort]);
+    loadIdeas();
+  }, [currentPage, pageSize, sortBy]);
 
-  const totalPages = Math.ceil(totalRecords / itemsPerPage);
-  const displayStart = (currentPage - 1) * itemsPerPage + 1;
-  const displayEnd = Math.min(displayStart + itemsPerPage - 1, totalRecords);
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
-  const renderPaginationControls = () => {
-    const pageNumberButtons: any[] = [];
-    const maxVisiblePages = 5;
+  const SelectDropdown = ({
+    label,
+    value,
+    onChange,
+    options,
+  }: {
+    label: string;
+    value: string | number;
+    onChange: (val: string) => void;
+    options: { label?: string; value: string | number }[];
+  }) => (
+    <label className="flex items-center gap-2">
+      <span>{label}</span>
+      <select
+        className="border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label || opt.value}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
 
-    let pageRangeStart = Math.max(
-      1,
-      currentPage - Math.floor(maxVisiblePages / 2)
-    );
-    let pageRangeEnd = Math.min(
-      totalPages,
-      pageRangeStart + maxVisiblePages - 1
-    );
+  const Pagination = () => {
+    if (totalPages <= 1) return null;
 
-    if (pageRangeEnd - pageRangeStart + 1 < maxVisiblePages) {
-      pageRangeStart = Math.max(1, pageRangeEnd - maxVisiblePages + 1);
+    const maxVisible = 5;
+    const pages = [];
+
+    let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let end = Math.min(totalPages, start + maxVisible - 1);
+
+    if (end - start < maxVisible - 1) {
+      start = Math.max(1, end - maxVisible + 1);
     }
 
-    if (totalPages <= 1 && totalRecords > 0) return null;
-    if (totalRecords === 0) return null;
+    for (let i = start; i <= end; i++) pages.push(i);
 
     return (
-      <nav className="flex justify-center items-center gap-2 mt-8">
+      <div className="flex justify-center gap-2 mt-8 text-sm">
         <button
-          onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+          onClick={() => handlePageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="p-2 rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-          aria-label="Halaman Sebelumnya"
+          className="px-3 py-2 rounded hover:bg-gray-200 disabled:opacity-40"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            className="w-5 h-5 text-gray-700"
-          >
-            <path
-              fillRule="evenodd"
-              d="M11.72 15.72a.75.75 0 0 1-.97.02l-.04-.02-4.25-4.5a.75.75 0 0 1 0-1.06l4.25-4.5a.75.75 0 0 1 1.06 1.06L7.81 10l3.91 4.19a.75.75 0 0 1-.02 1.04Z"
-              clipRule="evenodd"
-            />
-          </svg>
+          Prev
         </button>
 
-        {pageRangeStart > 1 && (
+        {start > 1 && (
           <>
-            <button
-              onClick={() => setCurrentPage(1)}
-              className="px-4 py-2 rounded-md hover:bg-gray-100"
-            >
-              1
-            </button>
-            {pageRangeStart > 2 && <span className="px-2">...</span>}
+            <button onClick={() => handlePageChange(1)}>1</button>
+            {start > 2 && <span>...</span>}
           </>
         )}
 
-        {pageNumberButtons.map((number) => (
+        {pages.map((num) => (
           <button
-            key={number}
-            onClick={() => setCurrentPage(number)}
-            className={`px-4 py-2 rounded-md ${
-              currentPage === number
+            key={num}
+            onClick={() => handlePageChange(num)}
+            className={`px-3 py-2 rounded ${
+              currentPage === num
                 ? "bg-orange-500 text-white"
-                : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                : "hover:bg-gray-100"
             }`}
           >
-            {number}
+            {num}
           </button>
         ))}
 
-        {pageRangeEnd < totalPages && (
+        {end < totalPages && (
           <>
-            {pageRangeEnd < totalPages - 1 && <span className="px-2">...</span>}
-            <button
-              onClick={() => setCurrentPage(totalPages)}
-              className="px-4 py-2 rounded-md hover:bg-gray-100"
-            >
+            {end < totalPages - 1 && <span>...</span>}
+            <button onClick={() => handlePageChange(totalPages)}>
               {totalPages}
             </button>
           </>
         )}
 
         <button
-          onClick={() =>
-            setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-          }
+          onClick={() => handlePageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="p-2 rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-          aria-label="Halaman Berikutnya"
+          className="px-3 py-2 rounded hover:bg-gray-200 disabled:opacity-40"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            className="w-5 h-5 text-gray-700"
-          >
-            <path
-              fillRule="evenodd"
-              d="M8.28 15.72a.75.75 0 0 0 .97-.02l.04-.02 4.25-4.5a.75.75 0 0 0 0-1.06l-4.25-4.5a.75.75 0 0 0-1.06 1.06L12.19 10l-3.91 4.19a.75.75 0 0 0 .02 1.04Z"
-              clipRule="evenodd"
-            />
-          </svg>
+          Next
         </button>
-      </nav>
+      </div>
     );
   };
 
@@ -163,112 +152,67 @@ export default function IdeasList() {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex flex-wrap justify-between items-center gap-4 text-sm">
         <span className="text-gray-600">
-          Show {displayStart} - {displayEnd} from {totalRecords}
+          Menampilkan {rangeStart} - {rangeEnd} dari {totalItems} ide
         </span>
-
         <div className="flex items-center gap-4">
-          <label className="flex items-center">
-            <span className="mr-2">Show per page:</span>
-            <div className="relative">
-              <select
-                value={itemsPerPage}
-                onChange={(e) => {
-                  setItemsPerPage(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="block appearance-none w-full bg-white border border-gray-300 text-gray-700 py-2 px-4 pr-8 rounded-md leading-tight focus:outline-none focus:border-blue-500"
-              >
-                {perPageOptions.map((option) => (
-                  <option key={option}>{option}</option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                <svg
-                  className="fill-current h-4 w-4"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
-                </svg>
-              </div>
-            </div>
-          </label>
-
-          <label className="flex items-center">
-            <span className="mr-2">Sort by:</span>
-            <div className="relative">
-              <select
-                value={currentSort}
-                onChange={(e) => {
-                  setCurrentSort(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="block appearance-none w-full bg-white border border-gray-300 text-gray-700 py-2 px-4 pr-8 rounded-md leading-tight focus:outline-none focus:border-blue-500"
-              >
-                {sortOptions.map((option) => (
-                  <option value={option.value} key={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                <svg
-                  className="fill-current h-4 w-4"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
-                </svg>
-              </div>
-            </div>
-          </label>
+          <SelectDropdown
+            label="Per halaman:"
+            value={pageSize}
+            onChange={(val) => {
+              setPageSize(Number(val));
+              setCurrentPage(1);
+            }}
+            options={PAGE_SIZE_OPTIONS.map((v) => ({ value: v }))}
+          />
+          <SelectDropdown
+            label="Urutkan:"
+            value={sortBy}
+            onChange={(val) => {
+              setSortBy(val);
+              setCurrentPage(1);
+            }}
+            options={SORT_MODES}
+          />
         </div>
       </div>
 
-      {isLoading && (
-        <div className="text-center text-gray-500 text-lg py-10">
-          Loading...
-        </div>
-      )}
-      {fetchError && (
-        <div className="text-center text-red-500 text-lg py-10">
-          Terjadi kesalahan: {fetchError}
-        </div>
+      {loading && (
+        <p className="text-center text-gray-500 py-10">Lagi ambil data...</p>
       )}
 
-      {!isLoading && !fetchError && totalRecords === 0 && (
-        <div className="text-center text-gray-500 text-lg py-10">
-          No article found.
-        </div>
+      {errorMsg && <p className="text-center text-red-500 py-10">{errorMsg}</p>}
+
+      {!loading && !errorMsg && ideas.length === 0 && (
+        <p className="text-center text-gray-500 py-10">
+          Tidak ada ide yang ditemukan.
+        </p>
       )}
 
-      {!isLoading && !fetchError && ideas.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      {!loading && !errorMsg && ideas.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           {ideas.map((idea) => (
             <Link
-              href={`/ideas/${idea.slug}`}
               key={idea.id}
-              className="group block rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 bg-white"
+              href={`/ideas/${idea.slug}`}
+              className="group block bg-white rounded shadow-sm hover:shadow-md transition-all duration-200"
             >
-              <div className="aspect-[4/3] relative w-full overflow-hidden">
+              <div className="relative aspect-[4/3] w-full overflow-hidden">
                 <Image
                   src={idea.medium_image?.[0]?.url ?? "/placeholder.jpg"}
                   alt={idea.title}
                   fill
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                  className="object-cover group-hover:scale-105 transition-transform duration-300"
-                  loading="lazy"
+                  className="object-cover transition-transform duration-300 group-hover:scale-105"
                 />
               </div>
               <div className="p-4">
-                <p className="text-sm text-gray-500 mb-1">
+                <p className="text-xs text-gray-400 mb-1">
                   {new Date(idea.published_at).toLocaleDateString("id-ID", {
                     day: "numeric",
                     month: "long",
                     year: "numeric",
                   })}
                 </p>
-                <h3 className="text-lg font-semibold line-clamp-3 text-gray-800">
+                <h3 className="text-md font-medium line-clamp-3 text-gray-800">
                   {idea.title}
                 </h3>
               </div>
@@ -277,10 +221,7 @@ export default function IdeasList() {
         </div>
       )}
 
-      {!isLoading &&
-        !fetchError &&
-        totalPages > 1 &&
-        renderPaginationControls()}
+      <Pagination />
     </div>
   );
 }
