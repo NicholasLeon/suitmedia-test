@@ -1,19 +1,23 @@
 import { getQuery } from "@/lib/utils";
 
-const BASE_URL = "/api/ideas";
+export type ImageFormat = {
+  id: number;
+  mime: string;
+  file_name: string;
+  url: string;
+};
 
 export type Idea = {
   id: number;
-  title: string;
   slug: string;
+  title: string;
   content: string;
   published_at: string;
+  deleted_at: string | null;
   created_at: string;
   updated_at: string;
-  image: {
-    url: string;
-    alt?: string;
-  };
+  small_image: ImageFormat[];
+  medium_image: ImageFormat[];
 };
 
 export type FetchIdeasParams = {
@@ -23,16 +27,30 @@ export type FetchIdeasParams = {
   filters?: Record<string, string | number>;
 };
 
+type Meta = {
+  total: number;
+  last_page: number;
+  per_page: number;
+  current_page: number;
+};
+
+type ApiResponse = {
+  data: Idea[];
+  meta: Meta;
+};
+
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
 export async function fetchIdeas({
   page = 1,
   size = 10,
   sort = "-published_at",
   filters = {},
-}: FetchIdeasParams = {}): Promise<Idea[]> {
+}: FetchIdeasParams = {}): Promise<{ data: Idea[]; meta: Meta | null }> {
   try {
     const query = getQuery({
-      page,
-      size,
+      "page[number]": page,
+      "page[size]": size,
       sort,
       ...filters,
       "append[]": ["small_image", "medium_image"],
@@ -40,17 +58,23 @@ export async function fetchIdeas({
 
     const response = await fetch(`${BASE_URL}?${query}`, {
       cache: "no-store",
+      headers: {
+        Accept: "application/json",
+      },
     });
 
     if (!response.ok) {
       console.error("API responded error:", response.statusText);
-      return [];
+      return { data: [], meta: null };
     }
 
-    const json = await response.json();
-    return json.data;
+    const json: ApiResponse = await response.json();
+    return {
+      data: json.data,
+      meta: json.meta || null,
+    };
   } catch (err) {
     console.error("Fetching Error:", err);
-    return [];
+    return { data: [], meta: null };
   }
 }
