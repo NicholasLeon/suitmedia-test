@@ -1,19 +1,24 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+const nextConfig = {
   async rewrites() {
     return [
       {
         source: "/api/ideas",
         destination: "https://suitmedia-backend.suitdev.com/api/ideas",
       },
+      {
+        source: "/api/proxy-image/:path*",
+        destination: "https://assets.suitdev.com/:path*",
+      },
     ];
   },
   images: {
-    domains: [
-      "images.unsplash.com",
-      "suitmedia-backend.suitdev.com",
-      "assets.suitdev.com",
+    domains: ["assets.suitdev.com", "suitmedia-backend.suitdev.com"],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "assets.suitdev.com",
+        pathname: "/storage/files/**",
+      },
     ],
   },
 };

@@ -56,26 +56,36 @@ export async function fetchIdeas({
       "append[]": ["small_image", "medium_image"],
     });
 
-    const response = await fetch(`${BASE_URL}?${query}`, {
+    let apiUrl = `${BASE_URL}?${query}`;
+    let response = await fetch(apiUrl, {
       cache: "no-store",
       headers: {
         Accept: "application/json",
-        "Content-type": "application/json",
       },
     });
 
-    if (!response.ok) {
-      console.error("API responded error:", response.statusText);
-      return { data: [], meta: null };
+    if (
+      !response.ok ||
+      !response.headers.get("content-type")?.includes("json")
+    ) {
+      apiUrl = `/api/proxy-ideas?${query}`;
+      response = await fetch(apiUrl, {
+        cache: "no-store",
+        headers: {
+          Accept: "application/json",
+        },
+      });
     }
 
-    const json: ApiResponse = await response.json();
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+    const data = await response.json();
     return {
-      data: json.data,
-      meta: json.meta || null,
+      data: data.data || [],
+      meta: data.meta || null,
     };
   } catch (err) {
-    console.error("Fetching Error:", err);
+    console.error("Fetch Error:", err);
     return { data: [], meta: null };
   }
 }

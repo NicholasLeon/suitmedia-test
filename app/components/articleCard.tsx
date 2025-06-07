@@ -11,7 +11,13 @@ export default function ArticleCard({ idea }: ArticleCardProps) {
     <Link href={`/ideas/${idea.slug}`} className="group block">
       <div className="aspect-[4/3] relative w-full overflow-hidden rounded-md">
         <Image
-          src={idea.medium_image?.[0]?.url || ""}
+          src={
+            idea.medium_image?.[0]?.url
+              ? `/api/image-proxy?url=${encodeURIComponent(
+                  idea.medium_image[0].url
+                )}`
+              : "/placeholder.jpg"
+          }
           alt={idea.title}
           fill
           sizes="(max-width: 768px) 100vw, 33vw"
