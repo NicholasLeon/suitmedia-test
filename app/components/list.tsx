@@ -39,8 +39,8 @@ export default function IdeasList() {
 
         setIdeas(data);
         setTotalItems(meta?.total || data.length);
-      } catch (err: any) {
-        setErrorMsg("Gagal memuat data ide. Silakan coba beberapa saat lagi.");
+      } catch (err: unknown) {
+        setErrorMsg("Failed to load data. Please ty again");
         console.error("Fetch error:", err);
       } finally {
         setLoading(false);
@@ -89,7 +89,7 @@ export default function IdeasList() {
     const pages = [];
 
     let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-    let end = Math.min(totalPages, start + maxVisible - 1);
+    const end = Math.min(totalPages, start + maxVisible - 1);
 
     if (end - start < maxVisible - 1) {
       start = Math.max(1, end - maxVisible + 1);
@@ -152,7 +152,7 @@ export default function IdeasList() {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex flex-wrap justify-between items-center gap-4 text-sm">
         <span className="text-gray-600">
-          Menampilkan {rangeStart} - {rangeEnd} dari {totalItems} ide
+          Show {rangeStart} - {rangeEnd} from {totalItems}
         </span>
         <div className="flex items-center gap-4">
           <SelectDropdown
@@ -183,9 +183,7 @@ export default function IdeasList() {
       {errorMsg && <p className="text-center text-red-500 py-10">{errorMsg}</p>}
 
       {!loading && !errorMsg && ideas.length === 0 && (
-        <p className="text-center text-gray-500 py-10">
-          Tidak ada ide yang ditemukan.
-        </p>
+        <p className="text-center text-gray-500 py-10">No article found.</p>
       )}
 
       {!loading && !errorMsg && ideas.length > 0 && (
