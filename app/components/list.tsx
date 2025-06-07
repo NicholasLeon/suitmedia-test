@@ -200,6 +200,7 @@ export default function IdeasList() {
                   alt={idea.title}
                   fill
                   className="object-cover transition-transform duration-300 group-hover:scale-105"
+                  unoptimized
                 />
               </div>
               <div className="p-4">

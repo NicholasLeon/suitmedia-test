@@ -15,6 +15,7 @@ export default function Banner({ title, imageUrl }: BannerProps) {
         className="object-cover object-center"
         sizes="100vw"
         priority
+        unoptimized
       />
       <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
         <h1 className="text-white text-3xl md:text-5xl font-bold text-center px-4">

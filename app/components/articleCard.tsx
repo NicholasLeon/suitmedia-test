@@ -17,6 +17,7 @@ export default function ArticleCard({ idea }: ArticleCardProps) {
           sizes="(max-width: 768px) 100vw, 33vw"
           className="object-cover group-hover:scale-105 transition-transform"
           loading="lazy"
+          unoptimized
         />
       </div>
       <h3 className="mt-2 text-lg font-semibold line-clamp-3">{idea.title}</h3>
